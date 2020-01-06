@@ -1,22 +1,44 @@
 <template id="app">
   <v-app>
-    <v-file-input type="file" @change="onFileChange"></v-file-input>
-    <v-btn @click="onSave" >Save</v-btn>
-    <pre id="view"></pre>
-    <v-card>
-      <v-card-title>
-        test
-      <v-card-title>
-      <v-text-field v-model="newRegExp"></v-text-field>
-      <v-text-field v-model="newText"></v-text-field>
-      <v-btn @click="onRegisterRegExp"></v-btn>
-    </v-card>
-    <v-data-table
-      :headers="headers"
-      :items="recordsMatching"
-      :items-per-page="200"
-      dense
-    ></v-data-table>
+    <v-container>
+      <v-row>
+        <v-col>
+          <v-card>
+            <v-data-table
+              :headers="headersPatterns"
+              :items="patternsRegExp"
+              :items-per-page="200"
+              dense
+            >
+            </v-data-table>
+          </v-card>
+        </v-col>
+        <v-col>
+          <v-card>
+            <v-card-title>
+              test
+            </v-card-title>
+            <v-text-field v-model="newRegExp"></v-text-field>
+            <v-text-field v-model="newText"></v-text-field>
+            <v-btn @click="onRegisterRegExp"></v-btn>
+          </v-card>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col>
+          <v-card>
+            <v-file-input type="file" @change="onFileChange"></v-file-input>
+            <v-btn @click="onSave" >Save</v-btn>
+            <v-data-table
+              :headers="headers"
+              :items="recordsMatching"
+              :items-per-page="200"
+              dense
+            ></v-data-table>
+          </v-card>
+        </v-col>
+      </v-row>
+    </v-container>
   </v-app>
 </template>
 
@@ -24,8 +46,8 @@
 
 const App = {
   template: '#app',
-  
-  
+
+
   data() {
     return {
       newRegExp: "",
@@ -40,12 +62,27 @@ const App = {
           value: 'matched',
         },
       ],
+      headersPatterns:[
+        {
+          text: '正規表現',
+          value:'regExp',
+        },
+        {
+          text: 'メモ',
+          value: 'text',
+        },
+        {
+          text: '品目',
+          value: 'hinmoku',
+        },
+      ],
     }
   },
-  
+
   computed: {
     ...Vuex.mapGetters([
-      'recordsMatching'
+      'recordsMatching',
+      'patternsRegExp',
     ]),
   },
   methods: {
