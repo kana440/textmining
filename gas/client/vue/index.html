@@ -1,0 +1,84 @@
+<template id="app">
+  <v-app>
+    <v-file-input type="file" @change="onFileChange"></v-file-input>
+    <v-btn @click="onSave" >Save</v-btn>
+    <pre id="view"></pre>
+    <v-card>
+      <v-card-title>
+        test
+      <v-card-title>
+      <v-text-field v-model="newRegExp"></v-text-field>
+      <v-text-field v-model="newText"></v-text-field>
+      <v-btn @click="onRegisterRegExp"></v-btn>
+    </v-card>
+    <v-data-table
+      :headers="headers"
+      :items="recordsMatching"
+      :items-per-page="200"
+      dense
+    ></v-data-table>
+  </v-app>
+</template>
+
+<script>
+
+const App = {
+  template: '#app',
+  
+  
+  data() {
+    return {
+      newRegExp: "",
+      newText: "",
+      headers:[
+        {
+          text: '資産テキスト',
+          value:'メモ10',
+        },
+        {
+          text: 'matched',
+          value: 'matched',
+        },
+      ],
+    }
+  },
+  
+  computed: {
+    ...Vuex.mapGetters([
+      'recordsMatching'
+    ]),
+  },
+  methods: {
+    ...Vuex.mapMutations([
+      'addPattern'
+    ]),
+    onFileChange(e){
+      console.log(e)
+      var file = e;
+      var url = URL.createObjectURL(file);
+      console.log(url)
+      d3.csv(url)
+        .then(myRecords => {
+        store.commit('readRecords',myRecords)
+      });
+    },
+    onSave(e){
+      console.log('hozon')
+    },
+    onRegisterRegExp(){
+      const result = this.addPattern({
+        regExp: this.newRegExp,
+        text: this.newText,
+        hinmoku: this.newText,
+      })
+    }
+  }
+}
+
+const vue = new Vue({
+  store,
+  vuetify: new Vuetify(),
+  render: h => h(App)
+  }).$mount('#vue-app')
+
+</script>

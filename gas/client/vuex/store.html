@@ -1,0 +1,58 @@
+<script>
+const state = {
+  records: [],
+  patterns: [
+    {
+      regExp: '委託派遣費用',
+      text: '委託派遣費用のもの',
+      hinmoku: 'temp001',
+    },
+    {
+      regExp: 'NMS',
+      text: 'NMSが入っているもの',
+      hinmoku: 'temp002',
+    },
+  ],
+}
+
+const mutations = {
+  readRecords(state, payload){
+    state.records = payload
+  },
+  addPattern(state, payload){
+    state.patterns.push(payload)
+  },
+}
+
+const actions = {
+  async myActionTest({commit, dispatch}){
+  }
+}
+
+const getters = {
+  patternsRegExp(state){
+    return state.patterns.map(pattern => {
+      pattern._regExp = new RegExp(pattern.regExp)
+      return pattern
+    })
+  },
+  recordsMatching(state,getters){
+    return state.records.map(record => {
+      const patternsMatched = getters.patternsRegExp.filter(pattern => {
+        return pattern._regExp.test(record.メモ10)
+      })
+      if( patternsMatched.length !== 0) {
+        record.matched = patternsMatched[0].hinmoku
+      }
+      return record
+    })
+  }
+}
+
+const store = new Vuex.Store({
+  state,
+  mutations,
+  actions,
+  getters,
+})
+</script>
