@@ -5,7 +5,7 @@
         <v-col>
           <v-card>
             <v-data-table
-              :headers="headersPatterns"
+              :headers="headerPatterns"
               :items="patternsRegExp"
               :items-per-page="200"
               dense
@@ -18,8 +18,9 @@
             <v-card-title>
               test
             </v-card-title>
-            <v-text-field v-model="newRegExp"></v-text-field>
-            <v-text-field v-model="newText"></v-text-field>
+            <v-text-field label="パターン(正規表現)" v-model="newRegExp"></v-text-field>
+            <v-text-field label="説明" v-model="newText"></v-text-field>
+            <v-text-field label="品目" v-model="newHinmoku"></v-text-field>
             <v-btn @click="onRegisterRegExp"></v-btn>
           </v-card>
         </v-col>
@@ -27,12 +28,51 @@
       <v-row>
         <v-col>
           <v-card>
-            <v-file-input type="file" @change="onFileChange"></v-file-input>
+            <v-card-title>
+              個品テーブル
+              <v-spacer></v-spacer>
+              <v-text-field
+                v-model="searchKohin"
+                append-icon="search"
+                label="Search"
+                single-line
+                hide-details
+              ></v-text-field>
+            </v-card-title>
+            <v-file-input type="file" @change="onFileChange($event)"></v-file-input>
             <v-btn @click="onSave" >Save</v-btn>
             <v-data-table
-              :headers="headers"
-              :items="recordsMatching"
+              :headers="headerRecords"
+              :items="recordsMatching.slice(0,100000)"
               :items-per-page="200"
+              @click:row="console.log('eee')"
+              :search="searchKohin"
+              dense
+            ></v-data-table>
+          </v-card>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col>
+          <v-card>
+            <v-card-title>
+              品目一覧
+              <v-spacer></v-spacer>
+              <v-text-field
+                v-model="searchHinmoku"
+                append-icon="search"
+                label="Search"
+                single-line
+                hide-details
+              ></v-text-field>
+            </v-card-title>
+            <v-file-input type="file" @change="onFileChangeHinmoku"></v-file-input>
+            <v-btn @click="onSave" >Save</v-btn>
+            <v-data-table
+              :headers="headerHinmoku"
+              :items="hinmoku"
+              :items-per-page="200"
+              :search="searchHinmoku"
               dense
             ></v-data-table>
           </v-card>
@@ -52,30 +92,9 @@ const App = {
     return {
       newRegExp: "",
       newText: "",
-      headers:[
-        {
-          text: '資産テキスト',
-          value:'メモ10',
-        },
-        {
-          text: 'matched',
-          value: 'matched',
-        },
-      ],
-      headersPatterns:[
-        {
-          text: '正規表現',
-          value:'regExp',
-        },
-        {
-          text: 'メモ',
-          value: 'text',
-        },
-        {
-          text: '品目',
-          value: 'hinmoku',
-        },
-      ],
+      newHinmoku: "",
+      searchHinmoku:"",
+      searchKohin:"",
     }
   },
 
@@ -83,6 +102,12 @@ const App = {
     ...Vuex.mapGetters([
       'recordsMatching',
       'patternsRegExp',
+    ]),
+    ...Vuex.mapState([
+      'headerRecords',
+      'headerPatterns',
+      'headerHinmoku',
+      'hinmoku',
     ]),
   },
   methods: {
@@ -97,6 +122,16 @@ const App = {
       d3.csv(url)
         .then(myRecords => {
         store.commit('readRecords',myRecords)
+      });
+    },
+    onFileChangeHinmoku(e){
+      console.log(e)
+      var file = e;
+      var url = URL.createObjectURL(file);
+      console.log(url)
+      d3.csv(url)
+        .then(myHinmoku => {
+        store.commit('readHinmoku',myHinmoku)
       });
     },
     onSave(e){
