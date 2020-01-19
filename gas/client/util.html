@@ -1,0 +1,40 @@
+<script>
+class MyReadLine {
+    constructor(file) {
+        this.file = file
+        this.blobPosition = 0
+        this.blobSize = 1024 * 512
+
+        this.fileSize = file.size
+        this.buffer = []
+        this.amari = ''
+    }
+    async getLine() {
+        if(this.buffer.length) {
+          return this.buffer.shift()
+        } else {
+          const blob = this.file.slice(this.blobPosition,this.blobPosition+this.blobSize,'text/csv')
+//          this.reader.readAsBinaryString(blob)
+          const result = await new Promise((resolve,reject)=>{
+            const fr = new FileReader()
+            fr.onload = () => {
+              resolve(fr.result)
+            }
+            fr.readAsBinaryString(blob)
+          })
+          this.blobPosition += this.blobSize
+          this.buffer = (this.amari + result).split('\r\n')
+          this.amari = this.buffer.pop()
+          return await this.getLine()
+        }
+    }
+    async getLineArray(){
+      const line = await this.getLine()
+      const a = line.match(/"[^"]*"|[^,]+/g)
+      a.forEach(e=>e.replace(/^"(.*)"$/,"$1"))
+      return a
+    }
+}
+
+
+</script>
