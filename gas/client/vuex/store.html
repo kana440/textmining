@@ -18,8 +18,12 @@ const headerRecords = [
     value:'品目名称',
   },
   {
-    text: '資産テキスト',
+    text: '資産TXT',
     value:'メモ10',
+  },
+  {
+    text: '取得価格',
+    value:'SAP連携金額　(取得金額)',
   },
   {
     text: 'suggest',
@@ -33,16 +37,24 @@ const headerRecords = [
 
 const headerPatterns = [
   {
-     text: '正規表現',
+   text: '名称',
+   value: 'name',
+  },
+  {
+     text: '資産TXT(regExp)',
      value:'regExp',
   },
   {
     text: 'メモ',
-    value: 'text',
+    value: 'memo',
   },
   {
-     text: '品目',
-     value: 'hinmoku',
+    text: '品目',
+    value:'hinmokuName',
+  },
+  {
+    text: '資産クラス',
+    value:'assetClassName',
   },
 ]
 
@@ -65,21 +77,10 @@ const headerHinmoku = [
 const state = {
   records: [],
   hinmoku: [],
+  patterns: [],
   headerRecords: headerRecords,
   headerPatterns: headerPatterns,
   headerHinmoku: headerHinmoku,
-  patterns: [
-    {
-      regExp: '委託派遣費用',
-      text: '委託派遣費用のもの',
-      hinmoku: 'temp001',
-    },
-    {
-      regExp: 'NMS',
-      text: 'NMSが入っているもの',
-      hinmoku: 'temp002',
-    },
-  ],
 }
 
 const mutations = {
@@ -88,6 +89,14 @@ const mutations = {
   },
   addPattern(state, payload){
     state.patterns.push(payload)
+  },
+  deletePattern(state, payload){
+    console.log(state.patterns)
+    state.patterns = state.patterns.filter(pattern=>{
+      return (pattern.regExp !== payload.regExp ||
+      pattern.hinmokuName !== payload.hinmokuName ||
+      pattern.assetClassName !== payload.assetClassName )
+    })
   },
   readHinmoku(state, payload){
     state.hinmoku = payload

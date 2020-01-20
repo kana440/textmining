@@ -9,6 +9,7 @@
               :items="patternsRegExp"
               :items-per-page="200"
               dense
+              @click:row="handlePatternClick"
             >
             </v-data-table>
           </v-card>
@@ -18,10 +19,13 @@
             <v-card-title>
               test
             </v-card-title>
-            <v-text-field label="パターン(正規表現)" v-model="newRegExp"></v-text-field>
-            <v-text-field label="説明" v-model="newText"></v-text-field>
-            <v-text-field label="品目" v-model="newHinmoku"></v-text-field>
-            <v-btn @click="onRegisterRegExp"></v-btn>
+            <v-text-field label="名称" v-model="newName"></v-text-field>
+            <v-text-field label="説明" v-model="newMemo"></v-text-field>
+            <v-text-field label="資産TXT(regExp)" v-model="newRegExp"></v-text-field>
+            <v-text-field label="品目" v-model="newHinmokuName"></v-text-field>
+            <v-text-field label="資産クラス" v-model="newAssetClassName"></v-text-field>
+            <v-btn @click="onRegisterRegExp">追加</v-btn>
+            <v-btn @click="onDeleteRegExp">削除</v-btn>
           </v-card>
         </v-col>
       </v-row>
@@ -53,7 +57,7 @@
               :headers="headerRecords"
               :items="recordsMatching.slice(0,100000)"
               :items-per-page="200"
-              @click:row="console.log('eee')"
+              @click:row="handleKohinClick"
               :search="searchKohin"
               dense
             ></v-data-table>
@@ -112,16 +116,18 @@ function handleDownload() {
   var blob = new Blob([ bom, content ], { "type" : "text/csv" });
   document.getElementById("download").href = window.URL.createObjectURL(blob);
 }
-            
+
 const App = {
   template: '#app',
 
 
   data() {
     return {
+      newName: "",
       newRegExp: "",
-      newText: "",
-      newHinmoku: "",
+      newMemo: "",
+      newHinmokuName: "",
+      newAssetClassName: "",
       searchHinmoku:"",
       searchKohin:"",
       kohinSelected:[],
@@ -142,8 +148,24 @@ const App = {
   },
   methods: {
     ...Vuex.mapMutations([
-      'addPattern'
+      'addPattern',
+      'deletePattern'
     ]),
+    handlePatternClick(e){
+      this.newName = e.name
+      this.newMemo = e.memo
+      this.newRegExp = e.regExp
+      this.newHinmokuName = e.hinmokuName
+      this.newAssetClassName = e.assetClassName
+    },
+    handleKohinClick(e){
+      console.log(e)
+      this.newName = e.メモ10
+      this.newMemo = ""
+      this.newRegExp = e.メモ10
+      this.newHinmokuName = e.品目名称
+      this.newAssetClassName = e["資産の種類名称（資産クラス名称）"]
+    },
     onFileChange(e){
       console.log(e)
       var file = e;
@@ -196,9 +218,20 @@ const App = {
     },
     onRegisterRegExp(){
       const result = this.addPattern({
+        name: this.newName,
+        memo: this.newMemo,
         regExp: this.newRegExp,
-        text: this.newText,
-        hinmoku: this.newText,
+        hinmokuName: this.newHinmokuName,
+        assetClassName: this.newAssetClassName,
+      })
+    },
+    onDeleteRegExp(){
+      const result = this.deletePattern({
+        name: this.newName,
+        memo: this.newMemo,
+        regExp: this.newRegExp,
+        hinmokuName: this.newHinmokuName,
+        assetClassName: this.newAssetClassName,
       })
     }
   }
