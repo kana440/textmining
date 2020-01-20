@@ -4,6 +4,11 @@
       <v-row>
         <v-col>
           <v-card>
+            <v-card-title>
+              <v-file-input type="file" @change="onFileChange('patterns',$event)"></v-file-input>
+              <v-btn onclick="document.getElementById('download2').click()">ダウンロード</v-btn>
+              <a id="download2" href="#" download="config.csv" onclick="handleDownload2()" style="display:none">ダウンロード</a>
+            </v-card-title>
             <v-data-table
               :headers="headerPatterns"
               :items="patternsRegExp"
@@ -43,7 +48,7 @@
                 hide-details
               ></v-text-field>
             </v-card-title>
-            <v-file-input type="file" @change="onFileChange($event)"></v-file-input>
+            <v-file-input type="file" @change="onFileChange('records',$event)"></v-file-input>
             <v-btn onclick="document.getElementById('download').click()">ダウンロード</v-btn>
             <a id="download" href="#" download="test.csv" onclick="handleDownload()" style="display:none">ダウンロード</a>
             <v-btn @click="onSave('delete',kohinSelected)" >削除</v-btn>
@@ -97,7 +102,7 @@
 <script>
 
 const headerArray = ["個品ID","会社コード","CAPEX/OPEXフラグ","有形/無形フラグ","発注通貨コード","発注金額","SAP連携金額　(取得金額)","現在帳簿価額","期末帳簿価額","品目ID","品目名称","製造メーカーID","製造メーカー名称","ロケ種別コード","ロケ種別","ロケL2システムコード","ロケL2コード","ロケL2名称","ロケL3システムコード","ロケL3コード","ロケL3名称","共通費配賦基準日","個品ステータス","資産ステータス","資産不明フラグ","発注番号","検収書番号","資産番号","資産補助番号","資本化日付(建仮:取得日）","資産クラス","資産の種類名称（資産クラス名称）","勘定科目","勘定科目名称","購入部門名称（責任原価センタ名称）","責任原価センタID","費用負担部門名称（原価センタ名称）","原価センタID","オーナー部門コード","オーナー部門名称","予算番号","除却日","シリアル番号","数量","借用品フラグ","仕入先コード","仕入先名称","故障フラグ","中古品フラグ","処分方法区分","耐用年数","耐用期間","残耐用年数","残耐用期間","ロケーション（住所コード（5桁））","ロケーション名称（住所名称（都道府県市区名））","MAコード（資産グループコード）","MAコード名称（資産グループコード名称）","無効日","最終棚卸日","資産フラグ","資産フラグ名称","リース契約日","リース開始日付","リース契約満了日","リースステータス","リースステータス名称","メモ1","メモ2","メモ3","メモ4","メモ5","メモ6","メモ7","メモ8","メモ9","メモ10","更新ユーザ","更新ユーザ名称","更新日"]
-
+const headerArrayPatterns = ["name","memo","regExt","hinmokuName","assetClassName"]
 
 function jsonToCsv(headerArray,json,delimiter=",") {
   const header = headerArray.join(delimiter) + "\n";
@@ -115,6 +120,12 @@ function handleDownload() {
   var content = jsonToCsv(headerArray,state.records,delimiter=",") ;
   var blob = new Blob([ bom, content ], { "type" : "text/csv" });
   document.getElementById("download").href = window.URL.createObjectURL(blob);
+}
+function handleDownload2() {
+  var bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+  var content = jsonToCsv(headerArrayPatterns,state.patterns,delimiter=",") ;
+  var blob = new Blob([ bom, content ], { "type" : "text/csv" });
+  document.getElementById("download2").href = window.URL.createObjectURL(blob);
 }
 
 const App = {
@@ -166,14 +177,25 @@ const App = {
       this.newHinmokuName = e.品目名称
       this.newAssetClassName = e["資産の種類名称（資産クラス名称）"]
     },
-    onFileChange(e){
-      console.log(e)
+    onFileChange(mode,e){
       var file = e;
       var url = URL.createObjectURL(file);
       console.log(url)
       d3.csv(url)
         .then(myRecords => {
-        store.commit('readRecords',myRecords)
+          switch (mode) {
+            case 'records': {
+              store.commit('readRecords',myRecords)
+              break
+            }
+            case 'patterns': {
+              store.commit('readPatterns',myRecords)
+              break
+            }
+            default: {
+
+            }
+          }
       });
     },
     onFileChangeHinmoku(e){
