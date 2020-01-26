@@ -1,0 +1,55 @@
+<template id='extract'>
+    <v-row>
+      <v-column>
+          <v-card>
+          <v-file-input
+            v-model="inputFile"
+            :show-size="1000"
+          >
+            input
+          </v-file-input>
+          <v-btn
+            @click="handleOpenFile"
+          >read
+          </v-btn>
+        </v-card>
+      </v-column>
+    </v-row>
+</template>
+<script>
+
+var myFile
+const Extract = {
+  el: '#extract',
+  data(){
+    return {
+      inputFile: null,
+    }
+  },
+  methods: {
+    async handleOpenFile(){
+      myFile = this.inputFile
+    },
+    async handleClickOpen(){
+      const fileHandle = await chooseFileSystemEntries({
+        type: 'openFile',
+        accepts:[{
+          description: 'Text file', // ファイルに関する説明
+          mimeTypes: ['text/plain'], // 受け付けるファイルのmimeType
+          extensions: ['txt'], // 受け付けるファイル拡張子
+        }]
+      })
+      const file = await fileHandle.getFile()
+      console.log(fileHandle)
+      console.log(file)
+    },
+    async handleClickSave(){
+      const directoryHandle = await chooseFileSystemEntries({
+        type: 'openDirectory',
+      })
+
+      console.log(directoryHandle)
+    },
+  }
+}
+</script>

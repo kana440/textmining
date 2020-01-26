@@ -1,6 +1,7 @@
 <template id="app">
   <v-app>
     <v-container>
+      <extract></extract>
       <v-row>
         <v-col>
           <v-card>
@@ -18,11 +19,16 @@
             >
             </v-data-table>
           </v-card>
+          <v-file-input type="file" @change="handleFileChange('records',$event)"></v-file-input>
+          {{getProgress}}
+          <a id="download3" href="#" >ダウンロード222</a>
+
+          <v-btn onclick="for(i=0;i<1000;i++)state.recordStream.getLine()">ダウンロード</v-btn>
+
         </v-col>
         <v-col>
           <v-card>
             <v-card-title>
-              test
             </v-card-title>
             <v-text-field label="名称" v-model="newName"></v-text-field>
             <v-text-field label="説明" v-model="newMemo"></v-text-field>
@@ -130,8 +136,9 @@ function handleDownload2() {
 
 const App = {
   template: '#app',
-
-
+  components: {
+    Extract: Extract,
+  },
   data() {
     return {
       newName: "",
@@ -149,6 +156,7 @@ const App = {
     ...Vuex.mapGetters([
       'recordsMatching',
       'patternsRegExp',
+      'getProgress',
     ]),
     ...Vuex.mapState([
       'headerRecords',
@@ -160,7 +168,8 @@ const App = {
   methods: {
     ...Vuex.mapMutations([
       'addPattern',
-      'deletePattern'
+      'deletePattern',
+      'loadRecords',
     ]),
     handlePatternClick(e){
       this.newName = e.name
@@ -177,6 +186,11 @@ const App = {
       this.newHinmokuName = e.品目名称
       this.newAssetClassName = e["資産の種類名称（資産クラス名称）"]
     },
+
+    handleFileChange(mode,e){
+      this.loadRecords(e)
+    },
+
     onFileChange(mode,e){
       var file = e;
       var url = URL.createObjectURL(file);

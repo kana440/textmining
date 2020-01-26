@@ -1,40 +1,157 @@
 <script>
 class MyReadLine {
-    constructor(file) {
-        this.file = file
-        this.blobPosition = 0
-        this.blobSize = 1024 * 512
+  constructor(file) {
+    this.blobSize = 1024 * 1024
+    this.blobPosition = 0
+    this.buffer = new Uint8Array(0)
 
-        this.fileSize = file.size
-        this.buffer = []
-        this.amari = ''
+    this.decoder = new TextDecoder()
+    this.bufferPosition = 0
+
+    const openFileOptions = {
+      type: 'openFile',
+      accepts:[{
+        description: 'CSV file',
+        mimeTypes: ['text/csv'],
+        extensions: ['csv'],
+      }]
     }
-    async getLine() {
-        if(this.buffer.length) {
-          return this.buffer.shift()
-        } else {
-          const blob = this.file.slice(this.blobPosition,this.blobPosition+this.blobSize,'text/csv')
-//          this.reader.readAsBinaryString(blob)
-          const result = await new Promise((resolve,reject)=>{
-            const fr = new FileReader()
-            fr.onload = () => {
-              resolve(fr.result)
-            }
-            fr.readAsBinaryString(blob)
-          })
-          this.blobPosition += this.blobSize
-          this.buffer = (this.amari + result).split('\r\n')
-          this.amari = this.buffer.pop()
-          return await this.getLine()
+    window.chooseFileSystemEntries(openFileOptions).then(async handle=>{
+      this.file = await handle.getFile()
+      this.fileSize = this.file.size
+    })
+  }
+
+  async getLine() {
+    const start = this.bufferPosition
+    const decoder = this.decoder
+    const buffer = this.buffer
+
+    for(let end=start; end<buffer.length-1; end++){
+      if(buffer[end]==13 && buffer[end+1]==10) {
+        this.bufferPosition = end + 2
+        return {
+          done: false,
+          result: decoder.decode(this.buffer.slice(start,end)),
         }
+      }
     }
-    async getLineArray(){
-      const line = await this.getLine()
-      const a = line.match(/"[^"]*"|[^,]+/g)
-      a.forEach(e=>e.replace(/^"(.*)"$/,"$1"))
-      return a
+
+    //return　しない場合（改行コードが見つからない場合）
+    //ファイルが読み込み完了しているなら、bufferを出してtrueを返
+    if(this.blobPosition > this.fileSize) {
+      if(this.bufferPosition == buffer.length){
+        return {
+          done: true,
+          result: null,
+        }
+      } else {
+        this.bufferPosition = buffer.length
+        return {
+          done: false,
+          result: decoder.decode(buffer.slice(start))
+        }
+      }
+
+    //ファイルが読み込み完了してないなら読み込み
+    } else {
+      const blob = this.file.slice(this.blobPosition,this.blobPosition+this.blobSize,'text/csv')
+      const array = new Uint8Array(await new Promise((resolve,reject)=>{
+        const fr = new FileReader()
+        fr.onload = () => {
+          resolve(fr.result)
+        }
+        fr.readAsArrayBuffer(blob)
+      }))
+
+      const newBuffer = new Uint8Array(this.buffer.slice(this.bufferPosition).length + array.length)
+      newBuffer.set(this.buffer.slice(this.bufferPosition),0)
+      newBuffer.set(array, this.buffer.slice(this.bufferPosition).length)
+
+      this.buffer = newBuffer
+      this.bufferPosition = 0
+      this.blobPosition += this.blobSize
+      return await this.getLine()
     }
+  }
+  async getLineArray(){
+    const line = await this.getLine()
+    if(line.done) return line
+    const a = line.result.match(/"[^"]*"|[^,]+/g)
+    a.forEach(e=>e.replace(/^"(.*)"$/,"$1"))
+    return {
+      done: false,
+      result: a,
+    }
+  }
+  getProgress(){
+    if(this.fileSize) {
+      return Math.max(0,Math.min(1,(this.blobPosition+this.bufferPosition-this.blobSize)/this.fileSize))
+    } else return 0
+  }
+}
+
+async function pipeStep(myReadLine, myWriteLine){
+  let temp
+  temp = await myReadLine.getLine()
+  if(temp.done){
+    await myWriteLine.commit()
+  } else {
+    await myWriteLine.writeLine(temp.result)
+  }
+  return {
+    done: temp.done,
+    result: null,
+  }
+}
+
+class MyWriteLine {
+  constructor() {
+    this.blobSize = 1024 * 1024
+    this.blobPosition = 0
+    this.buffer = new Uint8Array(0)
+    this.encoder = new TextEncoder()
+    const saveFileOptions = {
+      type: 'saveFile',
+      accepts: [{
+        description: 'CSV file',
+        mimeTypes: ['text/csv'],
+        extensions: ['csv'],
+      }],
+    }
+    window.chooseFileSystemEntries(saveFileOptions).then(handle=>{
+      this.handle = handle
+      handle.getFile().then(file=>{
+        this.size = file.size
+      })
+      handle.createWriter().then(writer=>{
+        this.writer = writer
+      })
+    })
+  }
+  async writeLine(content) {
+    const array = this.encoder.encode(content + '\r\n')
+    const newBuffer = new Uint8Array(this.buffer.length + array.length)
+    newBuffer.set(this.buffer,0)
+    newBuffer.set(array, this.buffer.length)
+    this.buffer = newBuffer
+    if(this.buffer.length > this.blobSize){
+      await this.writer.write(this.blobPosition, this.buffer)
+      this.blobPosition += this.buffer.length
+      this.buffer = new Uint8Array(0)
+    }
+  }
+  async commit(){
+    await this.writer.write(this.blobPosition, this.buffer)
+    this.blobPosition += this.buffer
+    this.buffer = new Uint8Array(0)
+    this.writer.close()
+//    this.writer = this.handle.createWriter()
+  }
 }
 
 
+if(!window.chooseFileSystemEntries){
+  alert("Native File System を有効にしてください。chrome://flags/#native-file-system-api")
+}
 </script>

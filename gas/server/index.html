@@ -1,0 +1,24 @@
+
+<html>
+<body>
+  <a id="download">テキストマイニング</a><br>
+  <small>ダウンロードして開いてください</small>
+
+<script>
+new Promise((resolve,reject)=>{
+  google.script.run
+    .withSuccessHandler(resolve)
+    .withFailureHandler(reject)
+    .include('client/index')
+}).then(content=>{
+  const mimetype = 'text/html';
+  const url = (window.URL || window.webkitURL).createObjectURL(new Blob([content], { 'type': mimetype }));
+  const a = document.getElementById('download');
+  a.target = '_blank';
+  a.download = 'textmining.html';
+  a.href = url;
+//  a.click();
+})
+</script>
+</body>
+</html>
