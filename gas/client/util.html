@@ -1,96 +1,82 @@
 <script>
-class MyReadLine {
-  constructor(file) {
-    this.blobSize = 1024 * 1024
-    this.blobPosition = 0
-    this.buffer = new Uint8Array(0)
-
-    this.decoder = new TextDecoder()
-    this.bufferPosition = 0
-
-    const openFileOptions = {
-      type: 'openFile',
-      accepts:[{
-        description: 'CSV file',
-        mimeTypes: ['text/csv'],
-        extensions: ['csv'],
-      }]
+  class MyReadLine {
+    constructor(file) {
+      this.blobSize = 1024 * 1024
+      this.blobPosition = 0
+      this.buffer = new Uint8Array(0)
+      this.decoder = new TextDecoder()
+      this.bufferPosition = 0
+      const openFileOptions = {
+        type: 'openFile',
+        accepts:[{
+          description: 'CSV file',
+          mimeTypes: ['text/csv'],
+          extensions: ['csv'],
+        }]
+      }
+      window.chooseFileSystemEntries(openFileOptions).then(async handle=>{
+        this.handle = handle
+        this.file = await handle.getFile()
+        this.fileSize = this.file.size
+      })
     }
-    window.chooseFileSystemEntries(openFileOptions).then(async handle=>{
-      this.file = await handle.getFile()
-      this.fileSize = this.file.size
-    })
-  }
 
-  async getLine() {
-    const start = this.bufferPosition
-    const decoder = this.decoder
-    const buffer = this.buffer
-
-    for(let end=start; end<buffer.length-1; end++){
-      if(buffer[end]==13 && buffer[end+1]==10) {
-        this.bufferPosition = end + 2
-        return {
-          done: false,
-          result: decoder.decode(this.buffer.slice(start,end)),
+    async getLine() {
+      const start = this.bufferPosition
+      const decoder = this.decoder
+      const buffer = this.buffer
+      for(let end=start; end<buffer.length-1; end++){
+        if(buffer[end]==13 && buffer[end+1]==10) {
+          this.bufferPosition = end + 2
+          return {
+            done: false,
+            result: decoder.decode(this.buffer.slice(start,end)),
+          }
         }
       }
-    }
 
-    //return　しない場合（改行コードが見つからない場合）
-    //ファイルが読み込み完了しているなら、bufferを出してtrueを返
-    if(this.blobPosition > this.fileSize) {
-      if(this.bufferPosition == buffer.length){
-        return {
-          done: true,
-          result: null,
+      if(this.blobPosition > this.fileSize) {
+        if(this.bufferPosition == buffer.length){
+          return {
+            done: true,
+            result: null,
+          }
+        } else {
+          this.bufferPosition = buffer.length
+          return {
+            done: false,
+            result: decoder.decode(buffer.slice(start))
+          }
         }
       } else {
-        this.bufferPosition = buffer.length
-        return {
-          done: false,
-          result: decoder.decode(buffer.slice(start))
-        }
+        const blob = this.file.slice(this.blobPosition,this.blobPosition+this.blobSize,'text/csv')
+        const array = new Uint8Array(await blob.arrayBuffer())
+        const newBuffer = new Uint8Array(this.buffer.slice(this.bufferPosition).length + array.length)
+        newBuffer.set(this.buffer.slice(this.bufferPosition),0)
+        newBuffer.set(array, this.buffer.slice(this.bufferPosition).length)
+
+        this.buffer = newBuffer
+        this.bufferPosition = 0
+        this.blobPosition += this.blobSize
+        return {done: false, result: null}
       }
-
-    //ファイルが読み込み完了してないなら読み込み
-    } else {
-      const blob = this.file.slice(this.blobPosition,this.blobPosition+this.blobSize,'text/csv')
-      const array = new Uint8Array(await new Promise((resolve,reject)=>{
-        const fr = new FileReader()
-        fr.onload = () => {
-          resolve(fr.result)
-        }
-        fr.readAsArrayBuffer(blob)
-      }))
-
-      const newBuffer = new Uint8Array(this.buffer.slice(this.bufferPosition).length + array.length)
-      newBuffer.set(this.buffer.slice(this.bufferPosition),0)
-      newBuffer.set(array, this.buffer.slice(this.bufferPosition).length)
-
-      this.buffer = newBuffer
-      this.bufferPosition = 0
-      this.blobPosition += this.blobSize
-      return await this.getLine()
+    }
+    async getLineArray(){
+      const line = await this.getLine()
+      if(line.done) return line
+      const a = line.result.match(/"[^"]*"|[^,]+/g)
+      a.forEach(e=>e.replace(/^"(.*)"$/,"$1"))
+      return {
+        done: false,
+        result: a,
+      }
+    }
+    getProgress(){
+      if(this.fileSize) {
+        return Math.max(0,Math.min(1,(this.blobPosition+this.bufferPosition-this.blobSize)/this.fileSize))
+      } else return 0
     }
   }
-  async getLineArray(){
-    const line = await this.getLine()
-    if(line.done) return line
-    const a = line.result.match(/"[^"]*"|[^,]+/g)
-    a.forEach(e=>e.replace(/^"(.*)"$/,"$1"))
-    return {
-      done: false,
-      result: a,
-    }
-  }
-  getProgress(){
-    if(this.fileSize) {
-      return Math.max(0,Math.min(1,(this.blobPosition+this.bufferPosition-this.blobSize)/this.fileSize))
-    } else return 0
-  }
-}
-
 async function pipeStep(myReadLine, myWriteLine){
   let temp
   temp = await myReadLine.getLine()
